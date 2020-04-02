@@ -40,7 +40,7 @@ class AuthController extends Controller
                 'aberto' => $request->aberto,
                 'obeservacao' => $request->obeservacao,
                 'url' => $request->url,
-                'password' => bcrypt($request->password),
+                'password' => \Hash::make($request->password),
             ]);
             $token = $this->guard()->login($user);
         } catch (\Exception $e) {
@@ -51,18 +51,19 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
+
         // assuming that the email or username is passed through a 'login' parameter
         $login = $request->input('login');
-        $field = filter_var($login, FILTER_VALIDATE_EMAIL) ? 'email' : 'user';
+        $field = filter_var($login, FILTER_VALIDATE_EMAIL) ? 'username' : 'user';
         $request->merge([$field => $login]);
         $credentials = $request->only($field, 'password');
-
         try {
             // attempt to verify the credentials and create a token for the user
-            if (! $token = JWTAuth::attempt($credentials)) {
+            if (! $token = $this->guard()->attempt($credentials)) {
                 return response()->json(['error' => 'Credênciais invalidas'], 401);
             }
         } catch (JWTException $e) {
+            dd($e);
             // something went wrong whilst attempting to encode the token
             return response()->json(['error' => 'Não foi possivel criar o token de acesso retorne mais tarde'], 500);
         }
@@ -99,7 +100,7 @@ class AuthController extends Controller
     // Usuários gest
     public function guest()
     {
-        $users = User::all();
+        $users = User::whereNotNull("lat")->get();
         return response()->json($users);
     }
 
