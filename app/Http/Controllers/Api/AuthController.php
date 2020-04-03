@@ -40,10 +40,12 @@ class AuthController extends Controller
                 'aberto' => $request->aberto,
                 'obeservacao' => $request->obeservacao,
                 'url' => $request->url,
-                'password' => \Hash::make($request->password),
+                'password' => $request->password,
             ]);
+
             $token = $this->guard()->login($user);
         } catch (\Exception $e) {
+            //return $e;
             return response()->json(['error' => 'Seus dados já possuem em nossa base de dados'], 401);
         }
         return $this->respondWithToken($token);
@@ -51,21 +53,9 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-
-        // assuming that the email or username is passed through a 'login' parameter
-        $login = $request->input('login');
-        $field = filter_var($login, FILTER_VALIDATE_EMAIL) ? 'username' : 'user';
-        $request->merge([$field => $login]);
-        $credentials = $request->only($field, 'password');
-        try {
-            // attempt to verify the credentials and create a token for the user
-            if (! $token = $this->guard()->attempt($credentials)) {
-                return response()->json(['error' => 'Credênciais invalidas'], 401);
-            }
-        } catch (JWTException $e) {
-            dd($e);
-            // something went wrong whilst attempting to encode the token
-            return response()->json(['error' => 'Não foi possivel criar o token de acesso retorne mais tarde'], 500);
+        $credentials = request(['email', 'password']);
+        if (! $token = $this->guard()->attempt($credentials)) {
+            return response()->json(['error' => 'Unauthorized'], 401);
         }
         return $this->respondWithToken($token);
     }
